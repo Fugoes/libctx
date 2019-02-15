@@ -62,11 +62,6 @@ __asm__(
 void ctx_make(struct ctx *ctx, char *stack_base, ctx_task_t ctx_task) {
   ctx->rip = (void *) ctx_task;
   ctx->rsp = stack_base;
-  ctx->rbx = 0;
-  ctx->r12 = 0;
-  ctx->r13 = 0;
-  ctx->r14 = 0;
-  ctx->r15 = 0;
   ctx->mxcsr_and_cw = 0;
 }
 
