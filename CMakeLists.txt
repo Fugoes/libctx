@@ -3,5 +3,5 @@ project(libctx C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(libctx_example_sum libctx_example_sum.c)
+add_executable(libctx_example_sum_prod libctx_example_sum_prod.c)
 add_executable(libctx_example_performance libctx_example_performance.c)

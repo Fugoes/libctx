@@ -1,68 +1,98 @@
 #ifndef LIBCTX_H
 #define LIBCTX_H
 
-struct ctx {
-  void *rip;
-  void *rsp;
-  void *rbx;
-  void *rbp;
-  void *r12;
-  void *r13;
-  void *r14;
-  void *r15;
-  void *mxcsr_and_cw;
+#include <stdint.h>
+
+#ifdef __amd64__
+typedef void (*ctx_func)(void *ctx, void *data);
+struct ctx_rval {
+  void *ctx;
+  void *data;
 };
 
-typedef void (*ctx_task_t)(struct ctx *ctx_l, struct ctx *ctx_r);
+void *ctx_make(uint8_t *stack, ctx_func func);
+struct ctx_rval ctx_jump(void *ctx, void *data);
 
-// switch from ctx_l to ctx_r
-void *ctx_switch(struct ctx *ctx_l, struct ctx *ctx_r);
-void ctx_make(struct ctx *ctx, char *stack_base, ctx_task_t ctx_task);
+
+void __ctx_init();
+
+//   0 1 2 3 4 5 6 7 8 9 a b c d e f
+// 0 [     rbx      ][     rbp      ]
+// 1 [     r12      ][     r13      ]
+// 2 [     r14      ][     r15      ]
+// 3 [mxcsr ][  cw  ][     rip      ]
 
 __asm__(
-".globl ctx_switch\n"
-".type ctx_switch, @function\n" // %rdi: ctx_l, %rsi: ctx_r
-"ctx_switch:\n"
-// store %rip in %r10
-"    movq    0x00(%rsp), %r10\n"
-// store %rsp in %r11
-"    leaq    0x08(%rsp), %r11\n"
-// saving %rip and %rsp
-"    movq    %r10, 0x00(%rdi)\n"
-"    movq    %r11, 0x08(%rdi)\n"
-// saving registers
-"    movq    %rbx, 0x10(%rdi)\n"
-"    movq    %rbp, 0x18(%rdi)\n"
-"    movq    %r12, 0x20(%rdi)\n"
-"    movq    %r13, 0x28(%rdi)\n"
-"    movq    %r14, 0x30(%rdi)\n"
-"    movq    %r15, 0x38(%rdi)\n"
-// store MXCSR
-"    stmxcsr 0x40(%rdi)\n"
-// store x87 FPU control word
-"    fnstcw  0x44(%rdi)\n"
-// setting %rip and %rsp
-"    movq    0x00(%rsi), %r10\n"
-"    movq    0x08(%rsi), %rsp\n"
-// setting registers
-"    movq    0x10(%rsi), %rbx\n"
-"    movq    0x18(%rsi), %rbp\n"
-"    movq    0x20(%rsi), %r12\n"
-"    movq    0x28(%rsi), %r13\n"
-"    movq    0x30(%rsi), %r14\n"
-"    movq    0x38(%rsi), %r15\n"
-// load MXCSR
-"    ldmxcsr 0x40(%rsi)\n"
-// load x87 FPU control word
-"    fldcw   0x44(%rsi)\n"
-// jump!
-"    jmpq    *%r10\n"
+"\
+.globl ctx_jump                                                               \n\
+.type ctx_jump, @function                                                     \n\
+.align 16                                                                     \n\
+ctx_jump:                                                                     \n\
+    leaq    -0x38(%rsp), %rsp                                                 \n\
+    movq    %rsp, %rax                                                        \n\
+    movq    %rsi, %rdx                                                        \n\
+    movq    %rbx, 0x00(%rsp)                                                  \n\
+    movq    %rbp, 0x08(%rsp)                                                  \n\
+    movq    %r12, 0x10(%rsp)                                                  \n\
+    movq    %r13, 0x18(%rsp)                                                  \n\
+    movq    %r14, 0x20(%rsp)                                                  \n\
+    movq    %r15, 0x28(%rsp)                                                  \n\
+    stmxcsr 0x30(%rsp)                                                        \n\
+    fnstcw  0x34(%rsp)                                                        \n\
+    movq    %rdi, %rsp                                                        \n\
+    movq    0x00(%rsp), %rbx                                                  \n\
+    movq    0x08(%rsp), %rbp                                                  \n\
+    movq    0x10(%rsp), %r12                                                  \n\
+    movq    0x18(%rsp), %r13                                                  \n\
+    movq    0x20(%rsp), %r14                                                  \n\
+    movq    0x28(%rsp), %r15                                                  \n\
+    ldmxcsr 0x30(%rsp)                                                        \n\
+    fldcw   0x34(%rsp)                                                        \n\
+    movq    0x38(%rsp), %r10                                                  \n\
+    leaq    0x40(%rsp), %rsp                                                  \n\
+    jmpq    *%r10                                                             \n\
+"
+);
+__asm__(
+"\
+.globl __ctx_init                                                             \n\
+.type __ctx_init, @function                                                   \n\
+.align 16                                                                     \n\
+__ctx_init:                                                                   \n\
+    movq    (%rsp), %r10                                                      \n\
+    movq    %rax, %rdi                                                        \n\
+    movq    %rdx, %rsi                                                        \n\
+    callq   *%r10                                                             \n\
+"
 );
 
-void ctx_make(struct ctx *ctx, char *stack_base, ctx_task_t ctx_task) {
-  ctx->rip = (void *) ctx_task;
-  ctx->rsp = stack_base;
-  ctx->mxcsr_and_cw = 0;
+void *ctx_make(uint8_t *stack, ctx_func func) {
+  uint64_t *s = (uint64_t *) stack;
+
+  s--;
+  *s = 0;
+  s--;
+  *s = (uint64_t) func;
+
+  s--;
+  *s = (uint64_t) &__ctx_init;
+  s--;
+  *s = 0;
+  s--;
+  *s = 0;
+  s--;
+  *s = 0;
+  s--;
+  *s = 0;
+  s--;
+  *s = 0;
+  s--;
+  *s = 0;
+  s--;
+  *s = 0;
+
+  return (void *) s;
 }
+#endif //__amd64__
 
 #endif //LIBCTX_H

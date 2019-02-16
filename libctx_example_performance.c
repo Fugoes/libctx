@@ -1,29 +1,25 @@
+// running 2000000000 context switch
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "libctx.h"
 
-#define STACK_SIZE 8192
+#define STACK_SIZE 4096
 
-char stack[STACK_SIZE];
-
-void func(struct ctx *ctx_l, struct ctx *ctx_r) {
+void func_sum(void *ctx, void *data) {
   for (;;) {
-    ctx_switch(ctx_r, ctx_l);
+    ctx = ctx_jump(ctx, NULL).ctx;
   }
 }
 
 int main() {
-  struct ctx *ctx_main = malloc(sizeof(struct ctx));
-  struct ctx *ctx_func = malloc(sizeof(struct ctx));
+  uint8_t *stack = malloc(STACK_SIZE);
+  void *ctx = ctx_make(stack + STACK_SIZE, &func_sum);
 
-  ctx_make(ctx_func, stack + STACK_SIZE, &func);
-
-  for (int i = 1; i <= 1000000000 / 2; i++) {
-    ctx_switch(ctx_main, ctx_func);
+  for (int i = 0; i < 1000000000; i++) {
+    ctx = ctx_jump(ctx, NULL).ctx;
   }
 
-  free(ctx_func);
-  free(ctx_main);
-
+  free(stack);
   return 0;
 }
