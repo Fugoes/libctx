@@ -6,20 +6,22 @@
 
 #define STACK_SIZE 4096
 
-void func_sum(ctx_t ctx, void *data) {
+void func(ctx_t ctx, void *data) {
+  ctx_rval_t rval = {ctx, NULL};
   for (;;) {
-    ctx = ctx_jump(ctx, NULL).ctx;
+    rval = ctx_jump(rval.ctx, NULL);
   }
 }
 
 int main() {
   uint8_t *stack = malloc(STACK_SIZE);
-  ctx_t ctx = ctx_make(stack + STACK_SIZE, &func_sum);
+  ctx_rval_t rval = {ctx_make(stack + STACK_SIZE, &func), NULL};
 
   for (int i = 0; i < 1000000000; i++) {
-    ctx = ctx_jump(ctx, NULL).ctx;
+    rval = ctx_jump(rval.ctx, NULL);
   }
 
   free(stack);
+
   return 0;
 }
