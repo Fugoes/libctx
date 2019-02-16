@@ -4,15 +4,15 @@
 #include <stdint.h>
 
 #ifdef __amd64__
-typedef void (*ctx_func)(void *ctx, void *data);
-struct ctx_rval {
-  void *ctx;
+typedef uint64_t ctx_t;
+typedef void (*ctx_func_t)(ctx_t ctx, void *data);
+typedef struct {
+  ctx_t ctx;
   void *data;
-};
+} ctx_rval_t;
 
-void *ctx_make(uint8_t *stack, ctx_func func);
-struct ctx_rval ctx_jump(void *ctx, void *data);
-
+ctx_t ctx_make(uint8_t *stack, ctx_func_t func);
+ctx_rval_t ctx_jump(ctx_t ctx, void *data);
 
 void __ctx_init();
 
@@ -66,7 +66,7 @@ __ctx_init:                                                                   \n
 "
 );
 
-void *ctx_make(uint8_t *stack, ctx_func func) {
+ctx_t ctx_make(uint8_t *stack, ctx_func_t func) {
   uint64_t *s = (uint64_t *) stack;
 
   s--;
@@ -91,7 +91,7 @@ void *ctx_make(uint8_t *stack, ctx_func func) {
   s--;
   *s = 0;
 
-  return (void *) s;
+  return (ctx_t) s;
 }
 #endif //__amd64__
 
