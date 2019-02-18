@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "libctx.h"
+#include "ctx.h"
 
 #define STACK_SIZE 4096
 
