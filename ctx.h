@@ -129,6 +129,11 @@ ctx_switch:                          \n\
 "
 );
 
+/*
+ * Sometimes the compiler would use `jmp` instead of `ret` to save instructions, and when the caller calls `ret`, it
+ * would return to the caller of the caller. If some caller called `ctx_switch` with `jmp`, `ctx_switch` would read
+ * `0x00(%rsp)`, so we need to make sure that `%rsp` is a valid readable address.
+ */
 __asm__(
 "\
 .globl __ctx_wrapper                 \n\
@@ -137,7 +142,6 @@ __asm__(
 __ctx_wrapper:                       \n\
     movq    0x08(%rsp), %r10         \n\
     movq    0x00(%rsp), %rdx         \n\
-    leaq    0x10(%rsp), %rsp         \n\
     jmpq    *%r10                    \n\
 "
 );
