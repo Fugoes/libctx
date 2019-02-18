@@ -18,7 +18,7 @@ ctx_t ctx_func;
 uint8_t stack_func[STACK_SIZE];
 
 int main() {
-  ctx_init(&ctx_func, &func, stack_func + STACK_SIZE, 0);
+  ctx_init(&ctx_func, stack_func + STACK_SIZE, &func, 0);
   for (int i = 0; i < 1000000000; i++) {
     ctx_switch(&ctx_main, &ctx_func);
   }
