@@ -6,22 +6,21 @@
 
 #define STACK_SIZE 4096
 
-void func(ctx_t ctx, void *data) {
-  ctx_rval_t rval = {ctx, NULL};
+void func(ctx_t *ctx_from, ctx_t *ctx_to, void *arg) {
   for (;;) {
-    rval = ctx_jump(rval.ctx, NULL);
+    ctx_from = ctx_switch(ctx_to, ctx_from);
   }
 }
 
+ctx_t ctx_main;
+ctx_t ctx_func;
+
+uint8_t stack_func[STACK_SIZE];
+
 int main() {
-  uint8_t *stack = malloc(STACK_SIZE);
-  ctx_rval_t rval = {ctx_make(stack + STACK_SIZE, &func), NULL};
-
+  ctx_init(&ctx_func, &func, stack_func + STACK_SIZE, 0);
   for (int i = 0; i < 1000000000; i++) {
-    rval = ctx_jump(rval.ctx, NULL);
+    ctx_switch(&ctx_main, &ctx_func);
   }
-
-  free(stack);
-
   return 0;
 }
