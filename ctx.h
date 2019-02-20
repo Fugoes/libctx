@@ -15,7 +15,7 @@ typedef struct {
   uint32_t cw;
 } ctx_t;
 
-void *ctx_switch(ctx_t *ctx_from, ctx_t *ctx_to);
+ctx_t *ctx_switch(ctx_t *ctx_from, ctx_t *ctx_to);
 void ctx_init(ctx_t *ctx, uint8_t *stack_hi, void (*func)(ctx_t *, ctx_t *, void *), void *arg);
 
 void __ctx_wrapper();
