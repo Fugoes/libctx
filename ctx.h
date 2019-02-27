@@ -55,29 +55,29 @@ __asm__(
 .type __ctx_wrapper, @function       \n\
 .align 4                             \n\
 __ctx_wrapper:                       \n\
-    movl    0x00(%esp), %ecx         \n\
-    movl    %eax, 0x04(%esp)         \n\
-    jmpl    *%ecx                    \n\
+    movl    0x0c(%esp), %ecx         \n\
+    movl    %eax, 0x00(%esp)         \n\
+    calll   *%ecx                    \n\
 "
 );
 
 void ctx_init(ctx_t *ctx, uint8_t *stack_hi, void (*func)(ctx_t *, ctx_t *, void *), void *arg) {
   uint32_t *esp = (uint32_t *) stack_hi;
   esp--;
+  *esp = (uint32_t) func;
+  esp--;
   *esp = (uint32_t) arg;
   esp--;
   *esp = (uint32_t) ctx;
   esp--;
-  esp--;
-  *esp = (uint32_t) func;
   ctx->eip = (uint32_t) &__ctx_wrapper;
   ctx->esp = (uint32_t) esp;
   ctx->ebx = 0;
   ctx->esi = 0;
   ctx->edi = 0;
   ctx->ebp = 0;
-  ctx->mxcsr = 0;
-  ctx->cw = 0;
+  ctx->mxcsr = 0x00001f80;
+  ctx->cw = 0x0000037f;
 }
 #elif defined(__amd64__)
 typedef struct {
@@ -142,7 +142,8 @@ __asm__(
 __ctx_wrapper:                       \n\
     movq    0x08(%rsp), %r10         \n\
     movq    0x00(%rsp), %rdx         \n\
-    jmpq    *%r10                    \n\
+    leaq    0x10(%rsp), %rsp         \n\
+    callq   *%r10                    \n\
 "
 );
 
@@ -160,7 +161,7 @@ void ctx_init(ctx_t *ctx, uint8_t *stack_hi, void (*func)(ctx_t *, ctx_t *, void
   ctx->r13 = 0;
   ctx->r14 = 0;
   ctx->r15 = 0;
-  ctx->mxcsr_cw = 0;
+  ctx->mxcsr_cw = 0x0000037f00001f80;
 }
 #endif
 

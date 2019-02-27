@@ -6,14 +6,16 @@
 
 #define STACK_SIZE 4096
 
+ctx_t ctx_main;
+ctx_t ctx_func;
+
 void func(ctx_t *ctx_from, ctx_t *ctx_to, void *arg) {
+  printf("%p == %p, %p == %p, %p == (nil)\n", &ctx_main, ctx_from, &ctx_func, ctx_to, arg);
+  printf("%f\n", 123 / 1.32);
   for (;;) {
     ctx_from = ctx_switch(ctx_to, ctx_from);
   }
 }
-
-ctx_t ctx_main;
-ctx_t ctx_func;
 
 uint8_t stack_func[STACK_SIZE];
 
